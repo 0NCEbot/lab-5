@@ -13,6 +13,8 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * MongoGradeDataBase class.
@@ -264,10 +266,35 @@ public class MongoGradeDataBase implements GradeDataBase {
         final Response response;
         final JSONObject responseBody;
 
-        // TODO Task 3b: Implement the logic to get the team information
-        // HINT 1: Look at the formTeam method to get an idea on how to parse the response
-        // HINT 2: You may find it useful to just initially print the contents of the JSON
-        //         then work on the details of how to parse it.
-        return null;
+        try {
+            response = client.newCall(request).execute();
+            final String body = response.body().string();
+            responseBody = new JSONObject(body);
+
+            // Check if the response is successful
+            if (responseBody.getInt("status_code") != 200) {
+                throw new RuntimeException("Error getting team: " + responseBody.getString("message"));
+            }
+
+            // Parse team data
+            JSONObject teamJson = responseBody.getJSONObject("team");
+            String teamName = teamJson.getString("name");
+
+            JSONArray membersArray = teamJson.getJSONArray("members");
+            List<String> members = new ArrayList<>();
+            for (int i = 0; i < membersArray.length(); i++) {
+                members.add(membersArray.getString(i));
+            }
+
+            // Convert List<String> → String[] for Team constructor
+            String[] membersArrayFinal = members.toArray(new String[0]);
+
+            return new Team(teamName, membersArrayFinal);
+
+        } catch (IOException e) {
+            throw new RuntimeException("IO error while getting team", e);
+        } catch (JSONException e) {
+            throw new RuntimeException("Error parsing team response", e);
+        }
     }
 }
